@@ -2,52 +2,28 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const express = require('express')
 const app = express()
+const Person = require('./models/person')
 
 app.use(bodyParser.json())
 app.use(express.static('src/build'))
 app.use(cors())
 
-let persons = [
-    {
-        name: 'Arto Hellas',
-        number: '040-123456',
-        id: 1
-    },
-    {
-        name: 'Martti Tienari',
-        number: '040-123456',
-        id: 2
-    },
-    {
-        name: 'Arto Järvinen',
-        number: '040-123456',
-        id:3
-    },
-    {
-        name: 'Lea Kutvonen',
-        number: '040-123456',
-        id: 4
+const formatPerson = (person) => {
+    return {
+        name: person.name,
+        number: person.number,
+        id: person._id
     }
-]
+}
 
 app.get('/', (req, res) => {
     res.sendFile('index.html')
 })
 
 app.get('/api/persons', (req, res) => {
-    res.json(persons)
-})
-
-app.get('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
-    person ? res.json(person) : res.status(404).end()
-})
-
-app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    persons = persons.filter(person => person.id !== id)
-    res.status(204).end()
+    Person.find({}).then(persons => {
+        res.json(persons.map(formatPerson))
+    })
 })
 
 app.post('/api/persons', (req, res) => {
@@ -56,15 +32,33 @@ app.post('/api/persons', (req, res) => {
     } else if (!req.body.number) {
         res.status(400).json({error: 'number missing'})
     } else {
-        const newPerson = req.body
-        if (persons.find(person => person.name === newPerson.name)) {
-            res.status(400).json({error: 'name must be unique'})
-        } else {
-            newPerson.id = Math.floor((Math.random() * 9999) + 1)
-            persons.push(newPerson)
-            res.json(newPerson)
-        }
+        const person = new Person({
+            name: req.body.name,
+            number: req.body.number
+        })
+        person.save().then(savedPerson => {
+            res.json(formatPerson(savedPerson))
+        })
     }
+})
+
+app.get('/api/persons/:id', (req, res) => {
+    const id = req.params.id
+    Person.findById(id).then(person => {
+        res.json(person)
+    }).catch(err => {
+        res.status(404).end()
+    })
+})
+
+app.delete('/api/persons/:id', (req, res) => {
+    const id = req.params.id
+    Person.findByIdAndDelete(id).then(() => {
+        res.status(204).end()
+    }).catch(err => {
+        console.log(err.message)
+        res.status(404).end()
+    })
 })
 
 const PORT = process.env.PORT || 3001
