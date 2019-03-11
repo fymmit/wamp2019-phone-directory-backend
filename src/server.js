@@ -1,8 +1,11 @@
 const bodyParser = require('body-parser')
+const cors = require('cors')
 const express = require('express')
 const app = express()
 
 app.use(bodyParser.json())
+app.use(express.static('src/build'))
+app.use(cors())
 
 let persons = [
     {
@@ -28,7 +31,7 @@ let persons = [
 ]
 
 app.get('/', (req, res) => {
-    res.send('<h1>Phone Directory Backend</h1>')
+    res.sendFile('index.html')
 })
 
 app.get('/api/persons', (req, res) => {
